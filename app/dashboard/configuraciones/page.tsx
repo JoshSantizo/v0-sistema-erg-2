@@ -154,7 +154,7 @@ export default function ConfiguracionesPage() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">INTERBANCO</p>
-                    <p className="text-sm font-semibold text-foreground">Cuenta de Ahorro</p>
+                    <p className="text-sm font-semibold text-foreground">Cuenta Monetaria</p>
                   </div>
                 </div>
                 <p className="text-lg font-mono font-bold text-accent">81002 08069</p>

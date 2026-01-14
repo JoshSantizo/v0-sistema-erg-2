@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getUserSession } from "@/lib/auth"
 import { Search } from "lucide-react"
+import { FilterSidebar } from "@/components/filter-sidebar"
 
 interface Persona {
   id: number
@@ -136,164 +137,204 @@ export default function ProcesoVisionPage() {
     })
   }
 
+  const clearFilters = () => {
+    setFilterLiderSubred("all")
+    setFilterLider("all")
+    setFilterEstado("all")
+    setSearchQuery("")
+  }
+
+  const activeFilterCount = [
+    filterLiderSubred !== "all",
+    filterLider !== "all",
+    filterEstado !== "all",
+    searchQuery !== "",
+  ].filter(Boolean).length
+
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground text-balance">Proceso de la Visión</h1>
-        <p className="text-muted-foreground mt-2">Seguimiento del proceso de discipulado</p>
-      </div>
+    <div className="container mx-auto p-4 lg:p-6">
+      {!showDetails ? (
+        <>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground text-balance">Proceso de la Visión</h1>
+            <p className="text-muted-foreground mt-2">Seguimiento del proceso de discipulado</p>
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        {etapas.map((etapa) => (
-          <Card key={etapa.nombre} className="border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground">{etapa.nombre}</CardTitle>
-              <CardDescription className="text-muted-foreground">Duración: {etapa.duracion}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    {userRole === "Lider de Subred" ? "Aprobados (Subred)" : "Aprobados"}
-                  </p>
-                  <p className="text-2xl font-bold text-foreground">{etapa.aprobados}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Pendientes</p>
-                  <p className="text-2xl font-bold text-accent">{etapa.pendientes}</p>
-                </div>
-              </div>
-              {userRole !== "Lider de Subred" && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Progreso</span>
-                    <span className="text-foreground font-medium">{etapa.progreso}%</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {etapas.map((etapa) => (
+              <Card key={etapa.nombre} className="border-border">
+                <CardHeader>
+                  <CardTitle className="text-foreground">{etapa.nombre}</CardTitle>
+                  <CardDescription className="text-muted-foreground">Duración: {etapa.duracion}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        {userRole === "Lider de Subred" ? "Aprobados (Subred)" : "Aprobados"}
+                      </p>
+                      <p className="text-2xl font-bold text-foreground">{etapa.aprobados}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Pendientes</p>
+                      <p className="text-2xl font-bold text-accent">{etapa.pendientes}</p>
+                    </div>
                   </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div
-                      className="bg-accent h-2 rounded-full transition-all"
-                      style={{ width: `${etapa.progreso}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-              <Button
-                variant="outline"
-                className="w-full bg-transparent"
-                onClick={() => handleVerDetalles(etapa.nombre)}
-              >
-                Ver Detalles
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Detalles: {selectedEtapa}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {userRole !== "Lider de Subred" && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Progreso</span>
+                        <span className="text-foreground font-medium">{etapa.progreso}%</span>
+                      </div>
+                      <div className="w-full bg-secondary rounded-full h-2">
+                        <div
+                          className="bg-accent h-2 rounded-full transition-all"
+                          style={{ width: `${etapa.progreso}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="w-full bg-transparent"
+                    onClick={() => handleVerDetalles(etapa.nombre)}
+                  >
+                    Ver Detalles
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-6">
+          <aside className="lg:w-64 lg:flex-shrink-0">
+            <FilterSidebar onClearFilters={clearFilters} filterCount={activeFilterCount}>
               {userRole === "Administración" && (
+                <>
+                  <div>
+                    <Label>Líder de Subred</Label>
+                    <Select value={filterLiderSubred} onValueChange={setFilterLiderSubred}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="Josué Santizo">Josué Santizo</SelectItem>
+                        <SelectItem value="María Rodríguez">María Rodríguez</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Líder</Label>
+                    <Select value={filterLider} onValueChange={setFilterLider}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="Daniela Juarez">Daniela Juarez</SelectItem>
+                        <SelectItem value="Marco Antonio López">Marco Antonio López</SelectItem>
+                        <SelectItem value="Sofia García">Sofia García</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {userRole === "Lider de Subred" && (
                 <div>
-                  <Label className="text-muted-foreground mb-2 block">Líder de Subred</Label>
-                  <Select value={filterLiderSubred} onValueChange={setFilterLiderSubred}>
-                    <SelectTrigger className="bg-background border-border">
+                  <Label>Líder</Label>
+                  <Select value={filterLider} onValueChange={setFilterLider}>
+                    <SelectTrigger>
                       <SelectValue placeholder="Todos" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos</SelectItem>
-                      {lideresSubred.map((ls) => (
-                        <SelectItem key={ls.value} value={ls.value}>
-                          {ls.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="Daniela Juarez">Daniela Juarez</SelectItem>
+                      <SelectItem value="Marco Antonio López">Marco Antonio López</SelectItem>
+                      <SelectItem value="Sofia García">Sofia García</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               )}
 
               <div>
-                <Label className="text-muted-foreground mb-2 block">Líder</Label>
-                <Select value={filterLider} onValueChange={setFilterLider}>
-                  <SelectTrigger className="bg-background border-border">
+                <Label>Estado</Label>
+                <Select value={filterEstado} onValueChange={setFilterEstado}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
-                    {lideres.map((lider) => (
-                      <SelectItem key={lider.value} value={lider.value}>
-                        {lider.label}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="Completado">Completado</SelectItem>
+                    <SelectItem value="Pendiente">Pendiente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label className="text-muted-foreground mb-2 block">Estado</Label>
-                <Select value={filterEstado} onValueChange={setFilterEstado}>
-                  <SelectTrigger className="bg-background border-border">
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="completado">Completado</SelectItem>
-                    <SelectItem value="pendiente">Pendiente</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Búsqueda</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Buscar personas..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-            </div>
+            </FilterSidebar>
+          </aside>
 
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Buscar por nombre..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+          <main className="flex-1 min-w-0">
+            <Dialog open={showDetails} onOpenChange={setShowDetails}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-foreground">Detalles: {selectedEtapa}</DialogTitle>
+                </DialogHeader>
 
-            <div className="space-y-3 min-h-[400px]">
-              <h3 className="font-semibold text-foreground">Personas ({getFilteredPersonas().length})</h3>
-              {getFilteredPersonas().length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  No se encontraron personas con los filtros seleccionados
-                </p>
-              ) : (
-                getFilteredPersonas().map((persona) => (
-                  <div
-                    key={persona.id}
-                    className="p-4 rounded-lg border border-border flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="font-medium text-foreground">{persona.nombre}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Líder: {persona.lider}
-                        {userRole === "Administración" && ` | Líder de Subred: ${persona.liderSubred}`}
+                <div className="space-y-4">
+                  <div className="space-y-3 min-h-[400px]">
+                    <h3 className="font-semibold text-foreground">Personas ({getFilteredPersonas().length})</h3>
+                    {getFilteredPersonas().length === 0 ? (
+                      <p className="text-muted-foreground text-center py-8">
+                        No se encontraron personas con los filtros seleccionados
                       </p>
-                    </div>
-                    <span
-                      className={`text-xs px-3 py-1 rounded-full ${
-                        persona.completado
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                      }`}
-                    >
-                      {persona.completado ? "Completado" : "Pendiente"}
-                    </span>
+                    ) : (
+                      getFilteredPersonas().map((persona) => (
+                        <div
+                          key={persona.id}
+                          className="p-4 rounded-lg border border-border flex items-center justify-between"
+                        >
+                          <div>
+                            <p className="font-medium text-foreground">{persona.nombre}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Líder: {persona.lider}
+                              {userRole === "Administración" && ` | Líder de Subred: ${persona.liderSubred}`}
+                            </p>
+                          </div>
+                          <span
+                            className={`text-xs px-3 py-1 rounded-full ${
+                              persona.completado
+                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                            }`}
+                          >
+                            {persona.completado ? "Completado" : "Pendiente"}
+                          </span>
+                        </div>
+                      ))
+                    )}
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </main>
+        </div>
+      )}
     </div>
   )
 }

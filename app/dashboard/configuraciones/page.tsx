@@ -132,12 +132,12 @@ export default function ConfiguracionesPage() {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Banco Industrial</p>
+                    <p className="text-xs text-muted-foreground">BANRURAL</p>
                     <p className="text-sm font-semibold text-foreground">Cuenta Monetaria</p>
                   </div>
                 </div>
-                <p className="text-lg font-mono font-bold text-accent">1234-5678-9012-3456</p>
-                <p className="text-xs text-muted-foreground mt-1">A nombre de: Iglesia ERG</p>
+                <p className="text-lg font-mono font-bold text-accent">36790 14925</p>
+                <p className="text-xs text-muted-foreground mt-1">A nombre de: Iglesia El Rey de Gloria</p>
               </div>
 
               <div className="bg-secondary/50 p-4 rounded-lg border border-border">
@@ -153,12 +153,12 @@ export default function ConfiguracionesPage() {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">BAM</p>
+                    <p className="text-xs text-muted-foreground">INTERBANCO</p>
                     <p className="text-sm font-semibold text-foreground">Cuenta de Ahorro</p>
                   </div>
                 </div>
-                <p className="text-lg font-mono font-bold text-accent">9876-5432-1098-7654</p>
-                <p className="text-xs text-muted-foreground mt-1">A nombre de: Iglesia ERG</p>
+                <p className="text-lg font-mono font-bold text-accent">81002 08069</p>
+                <p className="text-xs text-muted-foreground mt-1">A nombre de: Iglesia El Rey de Gloria</p>
               </div>
             </div>
           </div>

@@ -2,16 +2,19 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { getUserSession, clearUserSession } from "@/lib/auth"
+import { getUserSession, clearUserSession, getProfileImage } from "@/lib/auth"
 import { getMenuItemsForRole } from "@/lib/menu-items"
 
 export default function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userName, setUserName] = useState("")
+  const [userRole, setUserRole] = useState("")
+  const [userRed, setUserRed] = useState<string | undefined>()
   const [menuItems, setMenuItems] = useState<any[]>([])
   const pathname = usePathname()
   const router = useRouter()
@@ -20,6 +23,8 @@ export default function DashboardSidebar() {
     const user = getUserSession()
     if (user) {
       setUserName(user.name)
+      setUserRole(user.role)
+      setUserRed(user.red)
       setMenuItems(getMenuItemsForRole(user.role))
     } else {
       router.push("/")
@@ -31,22 +36,23 @@ export default function DashboardSidebar() {
     router.push("/")
   }
 
+  const profileImage = getProfileImage(userRole as any, userRed)
+
   return (
     <>
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar border-b border-sidebar-border p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
-            <svg
-              className="w-5 h-5 text-sidebar-primary-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-white flex items-center justify-center">
+            <Image
+              src={profileImage || "/placeholder.svg"}
+              alt="Logo"
+              width={32}
+              height={32}
+              className="object-contain"
+            />
           </div>
-          <span className="font-semibold text-sidebar-foreground">Dashboard</span>
+          <span className="font-semibold text-sidebar-foreground">ERG</span>
         </div>
         <Button
           variant="ghost"
@@ -80,17 +86,16 @@ export default function DashboardSidebar() {
           <div className="hidden lg:flex items-center justify-between p-4 border-b border-sidebar-border flex-shrink-0">
             {!collapsed && (
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-sidebar-primary-foreground"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-white flex items-center justify-center">
+                  <Image
+                    src={profileImage || "/placeholder.svg"}
+                    alt="Logo"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  />
                 </div>
-                <span className="font-semibold text-sidebar-foreground">Dashboard</span>
+                <span className="font-semibold text-sidebar-foreground">ERG</span>
               </div>
             )}
             <Button
@@ -114,10 +119,14 @@ export default function DashboardSidebar() {
           {!collapsed && userName && (
             <div className="p-4 border-b border-sidebar-border flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-sidebar-primary rounded-full flex items-center justify-center">
-                  <span className="text-sidebar-primary-foreground font-semibold">
-                    {userName.charAt(0).toUpperCase()}
-                  </span>
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-white flex items-center justify-center border-2 border-sidebar-primary">
+                  <Image
+                    src={profileImage || "/placeholder.svg"}
+                    alt={userName}
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-sidebar-foreground truncate">{userName}</p>

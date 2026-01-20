@@ -19,7 +19,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { getUserSession } from "@/lib/auth"
-import { Search } from "lucide-react"
+import { Search, ArrowUpDown } from "lucide-react"
 import { normalizeText } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { FilterSidebar } from "@/components/filter-sidebar"
@@ -83,6 +83,27 @@ interface Miembro {
   // Added liderSubred and estado fields
   liderSubred?: string
   estado?: "Activo" | "Inactivo"
+  // Added casaDePaz field
+  casaDePaz?: string
+}
+
+// Casas de Paz mock data
+const CASAS_DE_PAZ = [
+  { id: 1, nombre: "Casa de Paz Zona 10", lider: "Daniela Juarez" },
+  { id: 2, nombre: "Casa de Paz Zona 15", lider: "Daniela Juarez" },
+  { id: 3, nombre: "Casa de Paz Zona 1", lider: "Alejandro Miranda" },
+  { id: 4, nombre: "Casa de Paz Zona 5", lider: "Alejandro Miranda" },
+  { id: 5, nombre: "Casa de Paz Zona 12", lider: "Samuel López" },
+]
+
+// Líderes de Subred
+const LIDERES_SUBRED = ["Josué Santizo", "Carlos Ramírez", "Ana Martínez"]
+
+// Mapping of Líderes de Subred to their Líderes
+const LIDERES_POR_SUBRED: Record<string, string[]> = {
+  "Josué Santizo": ["Daniela Juarez", "Alejandro Miranda", "Samuel López"],
+  "Carlos Ramírez": ["Marco Antonio López", "Sofia García"],
+  "Ana Martínez": ["Laura Pérez", "Miguel Torres"],
 }
 
 // Placeholder function to simulate getting user session data
@@ -108,6 +129,7 @@ export default function MiembrosPage() {
       fechaConversion: "2020-05-10",
       fechaBautizo: "2020-06-15",
       estado: "Activo",
+      casaDePaz: "Casa de Paz Zona 10",
       procesoVision: {
         bautizo: "Completado",
         retiroBienvenida: "Completado",
@@ -135,6 +157,7 @@ export default function MiembrosPage() {
       fechaConversion: "2019-03-20",
       fechaBautizo: "2019-04-25",
       estado: "Activo",
+      casaDePaz: "Casa de Paz Zona 15",
       procesoVision: {
         bautizo: "Completado",
         retiroBienvenida: "Completado",
@@ -162,6 +185,7 @@ export default function MiembrosPage() {
       fechaConversion: "2021-01-15",
       fechaBautizo: "2021-02-20",
       estado: "Activo",
+      casaDePaz: "Casa de Paz Zona 1",
       procesoVision: {
         bautizo: "Completado",
         retiroBienvenida: "Completado",
@@ -189,6 +213,7 @@ export default function MiembrosPage() {
       fechaConversion: "2018-08-10",
       fechaBautizo: "2018-09-15",
       estado: "Inactivo",
+      casaDePaz: "Casa de Paz Zona 5",
       procesoVision: {
         bautizo: "Completado",
         retiroBienvenida: "Completado",
@@ -216,6 +241,7 @@ export default function MiembrosPage() {
       fechaConversion: "2022-03-05",
       fechaBautizo: "2022-04-10",
       estado: "Activo",
+      casaDePaz: "Casa de Paz Zona 12",
       procesoVision: {
         bautizo: "Completado",
         retiroBienvenida: "Completado",
@@ -265,8 +291,10 @@ export default function MiembrosPage() {
     fechaConversion: "",
     // Added fechaBautizo field
     fechaBautizo: "",
+    liderSubred: "",
     lider: "",
     ministerios: [] as string[],
+    casaDePaz: "",
   })
 
   const [userRole, setUserRole] = useState<string | null>(null)
@@ -275,14 +303,17 @@ export default function MiembrosPage() {
 
   const [searchQuery, setSearchQuery] = useState("")
   const [filterLider, setFilterLider] = useState<string>("all")
-  // Added filterLiderSubred, filterMinisterio, filterEstado
   const [filterLiderSubred, setFilterLiderSubred] = useState<string>("all")
   const [filterSexo, setFilterSexo] = useState<string>("all")
+  const [filterEdad, setFilterEdad] = useState<string>("all")
   // Changed filterMes to filterMonth
   const [filterMonth, setFilterMonth] = useState<string>("all")
   const [filterMinisterio, setFilterMinisterio] = useState<string>("all")
   const [filterEstado, setFilterEstado] = useState<string>("all")
+  const [filterAsistencia, setFilterAsistencia] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
+  const [sortColumn, setSortColumn] = useState<"nombre" | "fechaNacimiento">("nombre")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const itemsPerPage = 10
 
   const { toast } = useToast()
@@ -296,16 +327,52 @@ export default function MiembrosPage() {
     }
   }, [])
 
+  const calculateAge = (fechaNacimiento: string): number => {
+    const today = new Date()
+    const birthDate = new Date(fechaNacimiento)
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
+
+  const matchesAgeCategory = (edad: number, category: string): boolean => {
+    switch (category) {
+      case "ninos":
+        return edad >= 0 && edad <= 12
+      case "adolescentes":
+        return edad >= 13 && edad <= 17
+      case "jovenes":
+        return edad >= 18 && edad <= 25
+      case "tercera_edad":
+        return edad > 60
+      case "all":
+      default:
+        return true
+    }
+  }
+
   const sortedMiembros = [...miembros].sort((a, b) => {
-    const dateA = new Date(a.fechaNacimiento)
-    const dateB = new Date(b.fechaNacimiento)
+    if (sortColumn === "nombre") {
+      const comparison = a.nombre.localeCompare(b.nombre)
+      return sortDirection === "asc" ? comparison : -comparison
+    } else {
+      const dateA = new Date(a.fechaNacimiento)
+      const dateB = new Date(b.fechaNacimiento)
+      const monthA = dateA.getMonth()
+      const monthB = dateB.getMonth()
+      const dayA = dateA.getDate()
+      const dayB = dateB.getDate()
 
-    // Comparar primero por mes
-    const monthDiff = dateA.getMonth() - dateB.getMonth()
-    if (monthDiff !== 0) return monthDiff
-
-    // Si el mes es igual, comparar por día
-    return dateA.getDate() - dateB.getDate()
+      // Compare months first
+      if (monthA !== monthB) {
+        return sortDirection === "desc" ? monthB - monthA : monthA - monthB
+      }
+      // If same month, compare days
+      return sortDirection === "desc" ? dayB - dayA : dayA - dayB
+    }
   })
 
   // Updated lideres list to match sample data names
@@ -341,44 +408,61 @@ export default function MiembrosPage() {
     )
   }
 
-  // Changed filterMes to filterMonth
   if (userRole === "Lider") {
     filteredMiembros = filteredMiembros.filter((miembro) => {
       const fechaNac = new Date(miembro.fechaNacimiento)
       const mes = (fechaNac.getMonth() + 1).toString()
+      const edad = calculateAge(miembro.fechaNacimiento)
 
       const matchesSexo = filterSexo === "all" || miembro.sexo === filterSexo
       const matchesMes = filterMonth === "all" || mes === filterMonth
       const matchesMinisterio = filterMinisterio === "all" || miembro.ministerios.includes(filterMinisterio)
+      const matchesEdad = matchesAgeCategory(edad, filterEdad)
 
-      return matchesSexo && matchesMes && matchesMinisterio
+      return matchesSexo && matchesMes && matchesMinisterio && matchesEdad
     })
   } else if (userRole === "Lider de Subred") {
     filteredMiembros = filteredMiembros.filter((miembro) => {
       const fechaNac = new Date(miembro.fechaNacimiento)
       const mes = (fechaNac.getMonth() + 1).toString()
+      const edad = calculateAge(miembro.fechaNacimiento)
 
       const matchesLider = filterLider === "all" || miembro.lider === filterLider
       const matchesSexo = filterSexo === "all" || miembro.sexo === filterSexo
       const matchesMes = filterMonth === "all" || mes === filterMonth
       const matchesMinisterio = filterMinisterio === "all" || miembro.ministerios.includes(filterMinisterio)
+      const matchesEdad = matchesAgeCategory(edad, filterEdad)
 
-      return matchesLider && matchesSexo && matchesMes && matchesMinisterio
+      return matchesLider && matchesSexo && matchesMes && matchesMinisterio && matchesEdad
     })
   } else if (userRole === "Administración") {
     filteredMiembros = filteredMiembros.filter((miembro) => {
       const fechaNac = new Date(miembro.fechaNacimiento)
       const mes = (fechaNac.getMonth() + 1).toString()
+      const edad = calculateAge(miembro.fechaNacimiento)
 
-      // Added filterLiderSubred, filterMinisterio, filterEstado logic
       const matchesLiderSubred = filterLiderSubred === "all" || miembro.liderSubred === filterLiderSubred
       const matchesLider = filterLider === "all" || miembro.lider === filterLider
       const matchesSexo = filterSexo === "all" || miembro.sexo === filterSexo
       const matchesMes = filterMonth === "all" || mes === filterMonth
       const matchesMinisterio = filterMinisterio === "all" || miembro.ministerios.includes(filterMinisterio)
       const matchesEstado = filterEstado === "all" || miembro.estado === filterEstado
+      const matchesEdad = matchesAgeCategory(edad, filterEdad)
+      const matchesAsistencia =
+        filterAsistencia === "all" ||
+        (filterAsistencia === "asiste" && miembro.casaDePaz) ||
+        (filterAsistencia === "no_asiste" && !miembro.casaDePaz)
 
-      return matchesLiderSubred && matchesLider && matchesSexo && matchesMes && matchesMinisterio && matchesEstado
+      return (
+        matchesLiderSubred &&
+        matchesLider &&
+        matchesSexo &&
+        matchesMes &&
+        matchesMinisterio &&
+        matchesEstado &&
+        matchesEdad &&
+        matchesAsistencia
+      )
     })
   }
   // For Lider role, no specific filters are applied here, but search query might be relevant (though not implemented in this snippet for Lider role)
@@ -414,64 +498,77 @@ export default function MiembrosPage() {
 
   const handleUpdate = () => {
     if (selectedMember) {
-      if (userRole === "Administración" && editProcesoVision) {
-        const edad = new Date().getFullYear() - new Date(editFechaNacimiento).getFullYear()
-        setMiembros(
-          miembros.map((m) =>
-            m.id === selectedMember.id
-              ? {
-                  ...m,
-                  nombre: editNombre,
-                  telefono: editTelefono,
-                  direccion: editDireccion,
-                  referencia: editReferencia,
-                  fechaNacimiento: editFechaNacimiento,
-                  edad: edad,
-                  sexo: editSexo,
-                  fechaConversion: editFechaConversion,
-                  fechaBautizo: editFechaBautizo || undefined,
-                  fechaBoda: editFechaBoda || undefined,
-                  lider: editLider,
-                  liderSubred: editLiderSubred,
-                  estado: editEstado,
-                  procesoVision: editProcesoVision,
-                  ministerios: editMinisterios,
-                }
-              : m,
-          ),
-        )
-      } else if (userRole === "Lider de Subred") {
-        const edad = new Date().getFullYear() - new Date(editFechaNacimiento).getFullYear()
-        setMiembros(
-          miembros.map((m) =>
-            m.id === selectedMember.id
-              ? {
-                  ...m,
-                  nombre: editNombre,
-                  telefono: editTelefono,
-                  direccion: editDireccion,
-                  referencia: editReferencia,
-                  fechaNacimiento: editFechaNacimiento,
-                  edad: edad,
-                  sexo: editSexo,
-                  fechaConversion: editFechaConversion,
-                  fechaBautizo: editFechaBautizo || undefined,
-                  fechaBoda: editFechaBoda || undefined,
-                }
-              : m,
-          ),
-        )
-      } else {
-        setMiembros(
-          miembros.map((m) =>
-            m.id === selectedMember.id
-              ? { ...m, telefono: editTelefono, direccion: editDireccion, referencia: editReferencia }
-              : m,
-          ),
-        )
+      try {
+        if (userRole === "Administración" && editProcesoVision) {
+          const edad = new Date().getFullYear() - new Date(editFechaNacimiento).getFullYear()
+          setMiembros(
+            miembros.map((m) =>
+              m.id === selectedMember.id
+                ? {
+                    ...m,
+                    nombre: editNombre,
+                    telefono: editTelefono,
+                    direccion: editDireccion,
+                    referencia: editReferencia,
+                    fechaNacimiento: editFechaNacimiento,
+                    edad: edad,
+                    sexo: editSexo,
+                    fechaConversion: editFechaConversion,
+                    fechaBautizo: editFechaBautizo || undefined,
+                    fechaBoda: editFechaBoda || undefined,
+                    lider: editLider,
+                    liderSubred: editLiderSubred,
+                    estado: editEstado,
+                    procesoVision: editProcesoVision,
+                    ministerios: editMinisterios,
+                  }
+                : m,
+            ),
+          )
+        } else if (userRole === "Lider de Subred") {
+          const edad = new Date().getFullYear() - new Date(editFechaNacimiento).getFullYear()
+          setMiembros(
+            miembros.map((m) =>
+              m.id === selectedMember.id
+                ? {
+                    ...m,
+                    nombre: editNombre,
+                    telefono: editTelefono,
+                    direccion: editDireccion,
+                    referencia: editReferencia,
+                    fechaNacimiento: editFechaNacimiento,
+                    edad: edad,
+                    sexo: editSexo,
+                    fechaConversion: editFechaConversion,
+                    fechaBautizo: editFechaBautizo || undefined,
+                    fechaBoda: editFechaBoda || undefined,
+                  }
+                : m,
+            ),
+          )
+        } else {
+          setMiembros(
+            miembros.map((m) =>
+              m.id === selectedMember.id
+                ? { ...m, telefono: editTelefono, direccion: editDireccion, referencia: editReferencia }
+                : m,
+            ),
+          )
+        }
+        setEditMode(false)
+        setDetailsOpen(false)
+
+        toast({
+          title: "¡Éxito!",
+          description: `Los datos de ${selectedMember.nombre} han sido actualizados correctamente`,
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Ocurrió un error al actualizar el miembro. Por favor intenta de nuevo.",
+          variant: "destructive",
+        })
       }
-      setEditMode(false)
-      setDetailsOpen(false)
     }
   }
 
@@ -482,11 +579,24 @@ export default function MiembrosPage() {
 
   const confirmDelete = () => {
     if (memberToDelete) {
-      setMiembros(miembros.filter((m) => m.id !== memberToDelete))
-      setDeleteDialogOpen(false)
-      // Close details dialog if it was open
-      setDetailsOpen(false)
-      setMemberToDelete(null)
+      const memberName = miembros.find((m) => m.id === memberToDelete)?.nombre || "El miembro"
+      try {
+        setMiembros(miembros.filter((m) => m.id !== memberToDelete))
+        setDeleteDialogOpen(false)
+        setDetailsOpen(false)
+        setMemberToDelete(null)
+
+        toast({
+          title: "Miembro eliminado",
+          description: `${memberName} ha sido eliminado correctamente`,
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Ocurrió un error al eliminar el miembro. Por favor intenta de nuevo.",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -521,6 +631,8 @@ export default function MiembrosPage() {
         lider: userRole === "Lider" ? userName || "" : newMember.lider,
         // Set estado to "Activo" by default
         estado: "Activo",
+        // Set casaDePaz from form
+        casaDePaz: newMember.casaDePaz || undefined,
         procesoVision: {
           bautizo: "Pendiente",
           retiroBienvenida: "Pendiente",
@@ -550,6 +662,7 @@ export default function MiembrosPage() {
         fechaBautizo: "",
         lider: "",
         ministerios: [],
+        casaDePaz: "",
       })
 
       // Show success notification
@@ -592,24 +705,38 @@ export default function MiembrosPage() {
     setSearchQuery("")
   }
 
-  const activeFilterCount = [
-    filterMonth !== "all",
-    filterMinisterio !== "all",
-    filterSexo !== "all",
-    filterLider !== "all",
-    filterEstado !== "all",
-    searchQuery !== "",
-  ].filter(Boolean).length
-
   const clearAllFilters = () => {
     setSearchQuery("")
     setFilterLider("all")
     setFilterLiderSubred("all")
     setFilterSexo("all")
-    setFilterMonth("all") // Changed from setFilterMes to setFilterMonth
+    setFilterMonth("all")
     setFilterMinisterio("all")
     setFilterEstado("all")
+    setFilterEdad("all")
+    setFilterAsistencia("all")
     setCurrentPage(1)
+  }
+
+  const activeFilterCount = [
+    filterMonth !== "all",
+    filterMinisterio !== "all",
+    filterSexo !== "all",
+    filterLider !== "all",
+    filterLiderSubred !== "all",
+    filterEstado !== "all",
+    filterEdad !== "all",
+    filterAsistencia !== "all",
+    searchQuery !== "",
+  ].filter(Boolean).length
+
+  const toggleSort = (column: "nombre" | "fechaNacimiento") => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortColumn(column)
+      setSortDirection(column === "nombre" ? "asc" : "desc")
+    }
   }
 
   return (
@@ -702,6 +829,22 @@ export default function MiembrosPage() {
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Edad</Label>
+                  <Select value={filterEdad} onValueChange={setFilterEdad}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todas las edades" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las edades</SelectItem>
+                      <SelectItem value="ninos">Niños (0-12 años)</SelectItem>
+                      <SelectItem value="adolescentes">Adolescentes (13-17 años)</SelectItem>
+                      <SelectItem value="jovenes">Jóvenes (18-25 años)</SelectItem>
+                      <SelectItem value="tercera_edad">Tercera Edad (60+ años)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Sexo filter for all roles */}
                 <div className="space-y-2">
                   <Label>Sexo</Label>
@@ -729,6 +872,23 @@ export default function MiembrosPage() {
                         <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="Activo">Activo</SelectItem>
                         <SelectItem value="Inactivo">Inactivo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Asistencia filter for Administración only */}
+                {userRole === "Administración" && (
+                  <div className="space-y-2">
+                    <Label>Asistencia a Casa de Paz</Label>
+                    <Select value={filterAsistencia} onValueChange={setFilterAsistencia}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="asiste">Asiste</SelectItem>
+                        <SelectItem value="no_asiste">No asiste</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -770,8 +930,28 @@ export default function MiembrosPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 text-foreground font-semibold">Nombre</th>
-                        <th className="text-left py-3 px-4 text-foreground font-semibold">Fecha de Nacimiento</th>
+                        <th className="text-left py-3 px-4 text-foreground font-semibold">
+                          <button
+                            onClick={() => toggleSort("nombre")}
+                            className="flex items-center gap-1 hover:text-accent transition-colors"
+                          >
+                            Nombre
+                            <ArrowUpDown
+                              className={`h-4 w-4 ${sortColumn === "nombre" ? "text-accent" : "text-muted-foreground"}`}
+                            />
+                          </button>
+                        </th>
+                        <th className="text-left py-3 px-4 text-foreground font-semibold">
+                          <button
+                            onClick={() => toggleSort("fechaNacimiento")}
+                            className="flex items-center gap-1 hover:text-accent transition-colors"
+                          >
+                            Fecha de Nacimiento
+                            <ArrowUpDown
+                              className={`h-4 w-4 ${sortColumn === "fechaNacimiento" ? "text-accent" : "text-muted-foreground"}`}
+                            />
+                          </button>
+                        </th>
                         <th className="text-left py-3 px-4 text-foreground font-semibold">Detalles</th>
                       </tr>
                     </thead>
@@ -1158,11 +1338,7 @@ export default function MiembrosPage() {
                           Actualizar
                         </Button>
                         {userRole !== "Lider" && (
-                          <Button
-                            onClick={() => handleDelete(selectedMember.id)}
-                            variant="destructive"
-                            className="flex-1"
-                          >
+                          <Button variant="destructive" onClick={() => handleDelete(selectedMember.id)}>
                             Eliminar
                           </Button>
                         )}
@@ -1314,7 +1490,194 @@ export default function MiembrosPage() {
                     </div>
                   </div>
                   <Button onClick={handleCreateMember} className="w-full bg-accent text-accent-foreground">
-                    Crear Miembro
+                    Guardar Miembro
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {/* Create Member Dialog - For Administración role */}
+          {userRole === "Administración" && (
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Crear Nuevo Miembro</DialogTitle>
+                  <DialogDescription>Ingresa los datos del nuevo miembro</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-nombre">Nombre Completo</Label>
+                    <Input
+                      id="admin-new-nombre"
+                      value={newMember.nombre}
+                      onChange={(e) => setNewMember({ ...newMember, nombre: e.target.value })}
+                      placeholder="Nombre completo"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-telefono">Teléfono</Label>
+                    <Input
+                      id="admin-new-telefono"
+                      value={newMember.telefono}
+                      onChange={(e) => setNewMember({ ...newMember, telefono: e.target.value })}
+                      placeholder="1234-5678"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-direccion">Dirección</Label>
+                    <Input
+                      id="admin-new-direccion"
+                      value={newMember.direccion}
+                      onChange={(e) => setNewMember({ ...newMember, direccion: e.target.value })}
+                      placeholder="Dirección completa"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-referencia">Referencia</Label>
+                    <Input
+                      id="admin-new-referencia"
+                      value={newMember.referencia}
+                      onChange={(e) => setNewMember({ ...newMember, referencia: e.target.value })}
+                      placeholder="Punto de referencia"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-fechaNacimiento">Fecha de Nacimiento</Label>
+                    <Input
+                      id="admin-new-fechaNacimiento"
+                      type="date"
+                      value={newMember.fechaNacimiento}
+                      onChange={(e) => setNewMember({ ...newMember, fechaNacimiento: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-sexo">Sexo</Label>
+                    <Select
+                      value={newMember.sexo}
+                      onValueChange={(value: "Masculino" | "Femenino") =>
+                        setNewMember({ ...newMember, sexo: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Masculino">Masculino</SelectItem>
+                        <SelectItem value="Femenino">Femenino</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-fechaConversion">Fecha de Conversión</Label>
+                    <Input
+                      id="admin-new-fechaConversion"
+                      type="date"
+                      value={newMember.fechaConversion}
+                      onChange={(e) => setNewMember({ ...newMember, fechaConversion: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-fechaBautizo">Fecha de Bautizo</Label>
+                    <Input
+                      id="admin-new-fechaBautizo"
+                      type="date"
+                      value={newMember.fechaBautizo}
+                      onChange={(e) => setNewMember({ ...newMember, fechaBautizo: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-fechaBoda">Fecha de Boda (opcional)</Label>
+                    <Input
+                      id="admin-new-fechaBoda"
+                      type="date"
+                      value={newMember.fechaBoda}
+                      onChange={(e) => setNewMember({ ...newMember, fechaBoda: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-liderSubred">Líder de Subred</Label>
+                    <Select
+                      value={newMember.liderSubred || "none"}
+                      onValueChange={(value) => setNewMember({ 
+                        ...newMember, 
+                        liderSubred: value === "none" ? "" : value,
+                        lider: "" // Reset lider when liderSubred changes
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar Líder de Subred" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin asignar</SelectItem>
+                        {LIDERES_SUBRED.map((lider) => (
+                          <SelectItem key={lider} value={lider}>
+                            {lider}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-lider">Líder</Label>
+                    <Select
+                      value={newMember.lider || "none"}
+                      onValueChange={(value) => setNewMember({ ...newMember, lider: value === "none" ? "" : value })}
+                      disabled={!newMember.liderSubred}
+                    >
+                      <SelectTrigger className={!newMember.liderSubred ? "opacity-50" : ""}>
+                        <SelectValue placeholder={newMember.liderSubred ? "Seleccionar Líder" : "Primero selecciona un Líder de Subred"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin asignar</SelectItem>
+                        {newMember.liderSubred && 
+                          LIDERES_POR_SUBRED[newMember.liderSubred]?.map((lider) => (
+                            <SelectItem key={lider} value={lider}>
+                              {lider}
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-new-casaDePaz">Casa de Paz (opcional)</Label>
+                    <Select
+                      value={newMember.casaDePaz || "none"}
+                      onValueChange={(value) => setNewMember({ ...newMember, casaDePaz: value === "none" ? "" : value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar Casa de Paz" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin asignar</SelectItem>
+                        {CASAS_DE_PAZ.map((casa) => (
+                          <SelectItem key={casa.id} value={casa.nombre}>
+                            {casa.nombre} - {casa.lider}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Ministerios</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-[200px] overflow-y-auto">
+                      {MINISTERIOS_LISTA.map((ministerio) => (
+                        <div key={ministerio} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`admin-ministerio-${ministerio}`}
+                            checked={newMember.ministerios.includes(ministerio)}
+                            onCheckedChange={() => toggleMinisterio(ministerio)}
+                          />
+                          <label htmlFor={`admin-ministerio-${ministerio}`} className="text-sm cursor-pointer">
+                            {ministerio}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <Button onClick={handleCreateMember} className="w-full bg-accent text-accent-foreground">
+                    Guardar Miembro
                   </Button>
                 </div>
               </DialogContent>

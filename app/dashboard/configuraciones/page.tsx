@@ -10,8 +10,37 @@ import { Input } from "@/components/ui/input"
 import { getTheme, setTheme, type Theme } from "@/lib/theme"
 import { getUserSession } from "@/lib/auth"
 
+type TextSize = "small" | "medium" | "large"
+
+const getTextSize = (): TextSize => {
+  if (typeof window !== "undefined") {
+    return (localStorage.getItem("textSize") as TextSize) || "medium"
+  }
+  return "medium"
+}
+
+const setTextSizeStorage = (size: TextSize) => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("textSize", size)
+    // Apply text size to document
+    const root = document.documentElement
+    switch (size) {
+      case "small":
+        root.style.fontSize = "14px"
+        break
+      case "medium":
+        root.style.fontSize = "16px"
+        break
+      case "large":
+        root.style.fontSize = "18px"
+        break
+    }
+  }
+}
+
 export default function ConfiguracionesPage() {
   const [selectedTheme, setSelectedTheme] = useState<Theme>("dark")
+  const [textSize, setTextSize] = useState<TextSize>("medium")
   const [showPassword, setShowPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -25,12 +54,20 @@ export default function ConfiguracionesPage() {
   useEffect(() => {
     const theme = getTheme()
     setSelectedTheme(theme)
+    const savedTextSize = getTextSize()
+    setTextSize(savedTextSize)
+    setTextSizeStorage(savedTextSize)
     const user = getUserSession()
     if (user) {
       setUserName(user.name)
       setUserRole(user.role)
     }
   }, [])
+
+  const handleTextSizeChange = (size: TextSize) => {
+    setTextSize(size)
+    setTextSizeStorage(size)
+  }
 
   const handleThemeChange = (theme: Theme) => {
     setSelectedTheme(theme)
@@ -161,6 +198,54 @@ export default function ConfiguracionesPage() {
                 <p className="text-xs text-muted-foreground mt-1">A nombre de: Iglesia El Rey de Gloria</p>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground">Tamaño de Texto</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Ajusta el tamaño del texto para una mejor lectura
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <button
+              onClick={() => handleTextSizeChange("small")}
+              className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                textSize === "small" ? "border-accent" : "border-border"
+              }`}
+            >
+              <div className="w-full h-16 bg-secondary rounded mb-3 flex items-center justify-center">
+                <span className="text-xs font-medium text-foreground">Aa</span>
+              </div>
+              <p className="text-sm font-medium text-foreground text-center">Pequeno</p>
+            </button>
+
+            <button
+              onClick={() => handleTextSizeChange("medium")}
+              className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                textSize === "medium" ? "border-accent" : "border-border"
+              }`}
+            >
+              <div className="w-full h-16 bg-secondary rounded mb-3 flex items-center justify-center">
+                <span className="text-base font-medium text-foreground">Aa</span>
+              </div>
+              <p className="text-sm font-medium text-foreground text-center">Mediano</p>
+            </button>
+
+            <button
+              onClick={() => handleTextSizeChange("large")}
+              className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                textSize === "large" ? "border-accent" : "border-border"
+              }`}
+            >
+              <div className="w-full h-16 bg-secondary rounded mb-3 flex items-center justify-center">
+                <span className="text-xl font-medium text-foreground">Aa</span>
+              </div>
+              <p className="text-sm font-medium text-foreground text-center">Grande</p>
+            </button>
           </div>
         </CardContent>
       </Card>

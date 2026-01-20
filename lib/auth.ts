@@ -5,6 +5,7 @@ export interface User {
   password: string
   role: UserRole
   name: string
+  red?: "Adultos" | "Jóvenes" | "Adolescentes"
 }
 
 export const USERS: User[] = [
@@ -37,6 +38,7 @@ export const USERS: User[] = [
     password: "prueba123",
     role: "Lider",
     name: "Daniela Juarez",
+    red: "Adultos",
   },
   {
     username: "angel.orozco",
@@ -49,18 +51,21 @@ export const USERS: User[] = [
     password: "prueba123",
     role: "Lider",
     name: "Alejandro Miranda",
+    red: "Jóvenes",
   },
   {
     username: "samuel.lopez",
     password: "prueba123",
     role: "Lider",
     name: "Samuel López",
+    red: "Adolescentes",
   },
   {
     username: "carlos.rivera",
     password: "prueba123",
     role: "Lider",
     name: "Carlos Rivera",
+    red: "Adultos",
   },
 ]
 
@@ -89,4 +94,30 @@ export function clearUserSession() {
   if (typeof window !== "undefined") {
     localStorage.removeItem("currentUser")
   }
+}
+
+export function getProfileImage(role: UserRole, red?: string): string {
+  if (
+    role === "Administración" ||
+    role === "Lider de Subred" ||
+    role === "Super Admin" ||
+    role === "Lider de Servicio"
+  ) {
+    return "/images/erg.png"
+  }
+
+  if (role === "Lider") {
+    switch (red) {
+      case "Adultos":
+        return "/images/cdp.png"
+      case "Jóvenes":
+        return "/images/avyth.svg"
+      case "Adolescentes":
+        return "/images/teens.png"
+      default:
+        return "/images/cdp.png"
+    }
+  }
+
+  return "/images/erg.png"
 }

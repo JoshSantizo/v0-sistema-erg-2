@@ -26,13 +26,13 @@ const setTextSizeStorage = (size: TextSize) => {
     const root = document.documentElement
     switch (size) {
       case "small":
-        root.style.fontSize = "14px"
-        break
-      case "medium":
         root.style.fontSize = "16px"
         break
-      case "large":
+      case "medium":
         root.style.fontSize = "18px"
+        break
+      case "large":
+        root.style.fontSize = "20px"
         break
     }
   }

@@ -629,6 +629,8 @@ export default function MiembrosPage() {
         ministerios: newMember.ministerios,
         // Removed lider selector, now auto-assigned for Lider role. Also, ensure leader is set for other roles if provided.
         lider: userRole === "Lider" ? userName || "" : newMember.lider,
+        // Set liderSubred for Admin role
+        liderSubred: userRole === "Administración" ? newMember.liderSubred || undefined : undefined,
         // Set estado to "Activo" by default
         estado: "Activo",
         // Set casaDePaz from form
@@ -660,6 +662,7 @@ export default function MiembrosPage() {
         fechaConversion: "",
         // Reset fechaBautizo
         fechaBautizo: "",
+        liderSubred: "",
         lider: "",
         ministerios: [],
         casaDePaz: "",
@@ -1106,25 +1109,27 @@ export default function MiembrosPage() {
                             <p className="font-medium">{selectedMember.sexo}</p>
                           )}
                         </div>
-                        <div>
-                          <Label className="text-muted-foreground text-sm">Estado</Label>
-                          {editMode && userRole === "Administración" ? (
-                            <Select
-                              value={editEstado}
-                              onValueChange={(value: "Activo" | "Inactivo") => setEditEstado(value)}
-                            >
-                              <SelectTrigger className="mt-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Activo">Activo</SelectItem>
-                                <SelectItem value="Inactivo">Inactivo</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <p className="font-medium">{selectedMember.estado}</p>
-                          )}
-                        </div>
+                        {userRole === "Administración" && (
+                          <div>
+                            <Label className="text-muted-foreground text-sm">Estado</Label>
+                            {editMode ? (
+                              <Select
+                                value={editEstado}
+                                onValueChange={(value: "Activo" | "Inactivo") => setEditEstado(value)}
+                              >
+                                <SelectTrigger className="mt-1">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Activo">Activo</SelectItem>
+                                  <SelectItem value="Inactivo">Inactivo</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <p className="font-medium">{selectedMember.estado}</p>
+                            )}
+                          </div>
+                        )}
                         {userRole === "Administración" && (
                           <>
                             <div>
@@ -1166,12 +1171,6 @@ export default function MiembrosPage() {
                               )}
                             </div>
                           </>
-                        )}
-                        {(userRole === "Lider de Subred" || userRole === "Administración") && selectedMember.lider && (
-                          <div>
-                            <Label className="text-muted-foreground">Líder</Label>
-                            <p className="text-foreground">{selectedMember.lider}</p>
-                          </div>
                         )}
                         <div>
                           <Label className="text-muted-foreground text-sm">Fecha de Conversión</Label>
@@ -1637,25 +1636,6 @@ export default function MiembrosPage() {
                             </SelectItem>
                           ))
                         }
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-new-casaDePaz">Casa de Paz (opcional)</Label>
-                    <Select
-                      value={newMember.casaDePaz || "none"}
-                      onValueChange={(value) => setNewMember({ ...newMember, casaDePaz: value === "none" ? "" : value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar Casa de Paz" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Sin asignar</SelectItem>
-                        {CASAS_DE_PAZ.map((casa) => (
-                          <SelectItem key={casa.id} value={casa.nombre}>
-                            {casa.nombre} - {casa.lider}
-                          </SelectItem>
-                        ))}
                       </SelectContent>
                     </Select>
                   </div>
